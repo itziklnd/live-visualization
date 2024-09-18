@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Motivational Dashboard</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <style>
+      body {
+        background-color: #000; /* Black background */
+        color: #fff; /* White text color */
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .dashboard-container {
+        width: 100%;
+        height: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      .card {
+        border: 2px solid #6c757d; /* Border color */
+        border-radius: 0.5rem;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #343a40; /* Dark background for card */
+        height: 100%; /* Full height */
+        box-sizing: border-box;
+        overflow: hidden; /* Hide any overflow */
+        margin-right: 20px; /* Add margin between cards */
+      }
+      .card:last-child {
+        margin-right: 0; /* Remove margin from the last card */
+      }
+      .card-header {
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        border-bottom: 2px solid #6c757d; /* Border below header */
+        text-align: center;
+      }
+      .card-header.completed {
+        background-color: #155724; /* Dark green background for completed header */
+        color: #d4edda; /* Light green text color for completed header */
+      }
+      .card-header.incomplete {
+        background-color: #721c24; /* Dark red background for incomplete header */
+        color: #f5c6cb; /* Light red text color for incomplete header */
+      }
+      .card-body {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0.5rem;
+        flex: 1; /* Expands to fill remaining space */
+        box-sizing: border-box;
+        overflow-y: hidden; /* Disable vertical scrolling */
+      }
+      .tech-item {
+        border: 1px solid #6c757d; /* Border color */
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        margin: 0.5rem;
+        text-align: center;
+        flex: 1 1 150px; /* Minimum width for the items */
+        box-sizing: border-box;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s; /* Smooth transitions */
+      }
+      .tech-item.completed {
+        background-color: rgba(
+          40,
+          167,
+          69,
+          0.7
+        ); /* Semi-transparent green for completed SMs */
+        color: #fff; /* White text color */
+      }
+      .tech-item.incomplete {
+        background-color: rgba(
+          220,
+          53,
+          69,
+          0.7
+        ); /* Semi-transparent red for incomplete SMs */
+        color: #fff; /* White text color */
+      }
+      .tech-item.highlight {
+        animation: highlight 5s ease-out; /* Apply highlight animation for 5 seconds */
+      }
+      @keyframes highlight {
+        0% {
+          background-color: rgba(195, 208, 198, 0.7); /* Initial green color */
+          color: #fff; /* White text color */
+          transform: scale(1); /* Normal size */
+        }
+        50% {
+          background-color: rgba(
+            43,
+            40,
+            40,
+            0.5
+          ); /* Light white color for highlight effect */
+          color: #000; /* Black text color */
+          transform: scale(1.05); /* Slightly enlarged */
+        }
+        100% {
+          background-color: rgba(40, 167, 69, 0.7); /* End green color */
+          color: #fff; /* White text color */
+          transform: scale(1); /* Back to normal size */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="card">
+        <div class="card-header completed">
+          <h4 class="mb-0">
+            Completed SMs (<span id="completed-count">0</span>)
+          </h4>
+        </div>
+        <div id="completed" class="card-body">
+          <!-- Completed SMs will be inserted here dynamically -->
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header incomplete">
+          <h4 class="mb-0">
+            Incomplete SMs (<span id="incomplete-count">0</span>)
+          </h4>
+        </div>
+        <div id="incomplete" class="card-body">
+          <!-- Incomplete SMs will be inserted here dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function updateDashboard() {
+        $.ajax({
+          url: "/update-data",
+          method: "GET",
+          success: function (response) {
+            updateLists(response.completed, response.incomplete);
+          },
+          error: function (error) {
+            console.log("Error updating dashboard:", error);
+          },
+        });
+      }
+
+      function updateLists(completedList, incompleteList) {
+        let completedDiv = $("#completed");
+        let incompleteDiv = $("#incomplete");
+
+        let newCompletedItems = completedList.filter(
+          (item) => !completedDiv.find(`.tech-item[data-name="${item}"]`).length
+        );
+        let newIncompleteItems = incompleteList.filter(
+          (item) =>
+            !incompleteDiv.find(`.tech-item[data-name="${item}"]`).length
+        );
+
+        // Store the current items to detect new ones
+        let existingCompletedItems = completedDiv
+          .find(".tech-item")
+          .map(function () {
+            return $(this).data("name");
+          })
+          .get();
+        let existingIncompleteItems = incompleteDiv
+          .find(".tech-item")
+          .map(function () {
+            return $(this).data("name");
+          })
+          .get();
+
+        completedDiv.empty();
+        incompleteDiv.empty();
+
+        // Update counts
+        $("#completed-count").text(completedList.length);
+        $("#incomplete-count").text(incompleteList.length);
+
+        if (completedList.length > 0) {
+          completedList.forEach(function (tech) {
+            completedDiv.append(
+              `<div class="tech-item completed" data-name="${tech}">${tech}</div>`
+            );
+          });
+        } else {
+          completedDiv.append(
+            '<div class="tech-item completed">No completed SMs yet</div>'
+          );
+        }
+
+        if (incompleteList.length > 0) {
+          incompleteList.forEach(function (tech) {
+            incompleteDiv.append(
+              `<div class="tech-item incomplete" data-name="${tech}">${tech}</div>`
+            );
+          });
+        } else {
+          incompleteDiv.append(
+            '<div class="tech-item incomplete">All SMs are completed!</div>'
+          );
+        }
+
+        // Add highlight class to new items
+        newCompletedItems.forEach((item) => {
+          completedDiv
+            .find(`.tech-item[data-name="${item}"]`)
+            .addClass("highlight");
+        });
+      }
+
+      $(document).ready(function () {
+        // Initial load
+        updateDashboard();
+
+        // Update every 5 seconds
+        setInterval(updateDashboard, 5000);
+      });
+    </script>
+  </body>
+</html>
